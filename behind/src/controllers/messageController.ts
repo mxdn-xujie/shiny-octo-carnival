@@ -2,15 +2,20 @@ import { Request, Response } from 'express';
 import Message from '../models/Message';
 import { AuthRequest } from '../middlewares/auth';
 
+interface QueryParams {
+  roomId: string;
+  type?: string;
+}
+
 // 获取房间历史消息
 export const getRoomMessages = async (req: Request, res: Response): Promise<void> => {
   try {
     const { roomId } = req.params;
     const { type = 'all', page = 1, limit = 50 } = req.query;
     
-    const query = { roomId };
+    const query: QueryParams = { roomId };
     if (type !== 'all') {
-      query['type'] = type;
+      query.type = type as string;
     }
     
     const messages = await Message.find(query)
