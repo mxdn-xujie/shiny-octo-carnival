@@ -4,11 +4,37 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 
+/* 移动端优化 */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-container {
+    @apply max-w-screen-md mx-auto px-4;
+  }
+
+  .touch-feedback {
+    @apply active:opacity-70 transition-opacity;
+  }
+}
+
+/* 针对不同设备的字体大小适配 */
+@media screen and (max-width: 640px) {
+  html {
+    font-size: 14px;
   }
 }
 

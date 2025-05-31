@@ -29,6 +29,10 @@ import {
   encryptVoiceData,
   decryptVoiceData,
 } from "@/lib/utils"
+import { useMobile } from '@/hooks/use-mobile';
+import { useMobileControls } from '@/hooks/use-mobile-controls';
+import { useTouchGestures } from '@/hooks/use-touch-gestures';
+import { MobileAudioControls } from './mobile-audio-controls'
 
 interface Participant {
   id: string
@@ -122,6 +126,35 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
         description: error.message,
         variant: 'destructive',
       });
+    },
+  });
+
+  const { isMobile, isIOS } = useMobile();
+
+  const { shortVibration, mediumVibration, longVibration } = useMobileControls({
+    onVolumeUp: () => handleVolumeChange(Math.min(audioVolume + 0.1, 1)),
+    onVolumeDown: () => handleVolumeChange(Math.max(audioVolume - 0.1, 0)),
+    enableVibration: true,
+  });
+
+  useTouchGestures({
+    onSwipeLeft: () => {
+      if (isConnected) {
+        handleToggleMute();
+        shortVibration();
+      }
+    },
+    onSwipeRight: () => {
+      if (isConnected) {
+        handleTogglePTTMode();
+        mediumVibration();
+      }
+    },
+    onDoubleTap: () => {
+      if (isConnected && !isPTTMode) {
+        handleToggleMute();
+        shortVibration();
+      }
     },
   });
 
@@ -243,6 +276,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
       activatePTT(localStreamRef.current)
       setIsPTTActive(true)
       setIsMuted(false)
+      shortVibration()
       setParticipants(prev =>
         prev.map(p => (p.name === user.username ? { ...p, isMuted: false } : p))
       )
@@ -254,6 +288,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
       deactivatePTT(localStreamRef.current)
       setIsPTTActive(false)
       setIsMuted(true)
+      shortVibration()
       setParticipants(prev =>
         prev.map(p => (p.name === user.username ? { ...p, isMuted: true } : p))
       )
@@ -263,6 +298,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   const handleToggleMute = () => {
     const newMutedState = toggleMute(localStreamRef.current)
     setIsMuted(newMutedState)
+    shortVibration()
     setParticipants(prev =>
       prev.map(p => (p.name === user.username ? { ...p, isMuted: newMutedState } : p))
     )
@@ -629,38 +665,40 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* 头部用户信息 */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-center flex-1">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">网络对讲</h1>
-            <p className="text-gray-600">实时语音通信平台</p>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ${
+      isMobile ? 'safe-top safe-bottom' : 'p-4'
+    }`}>
+      <div className="mobile-container">
+        {/* 头部用户信息 - 移动端优化 */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+          <div className="text-center w-full sm:w-auto">
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">网络对讲</h1>
+            <p className="text-sm sm:text-base text-gray-600">实时语音通信平台</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm w-full sm:w-auto">
               <UserIcon className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium">{user.username}</span>
+              <span className="text-sm font-medium truncate">{user.username}</span>
               <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
                 {user.role === "admin" ? "管理员" : "用户"}
               </Badge>
             </div>
-            <Button onClick={onLogout} variant="outline">
+            <Button onClick={onLogout} variant="outline" className="w-full sm:w-auto touch-feedback">
               <LogOut className="w-4 h-4 mr-2" />
               退出登录
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* 连接控制面板 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
+          {/* 连接控制面板 - 移动端优化 */}
+          <Card className="order-2 sm:order-1">
+            <CardHeader className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 {connectionStatus === "connected" ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
                 连接控制
               </CardTitle>
-              <CardDescription>加入或创建语音房间</CardDescription>
+              <CardDescription className="text-sm">加入或创建语音房间</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
@@ -743,66 +781,90 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
             </CardContent>
           </Card>
 
-          {/* 参与者列表 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          {/* 参与者列表 - 移动端优化 */}
+          <Card className="order-1 sm:order-2">
+            <CardHeader className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Users className="w-5 h-5" />
                 参与者 ({participants.length})
               </CardTitle>
-              <CardDescription>当前房间内的用户</CardDescription>
+              <CardDescription className="text-sm">当前房间内的用户</CardDescription>
             </CardHeader>
             <CardContent>
-              {participants.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>暂无参与者</p>
-                  <p className="text-sm">加入房间后显示参与者列表</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                          {participant.name.charAt(0).toUpperCase()}
+              <div className="max-h-[40vh] sm:max-h-[60vh] overflow-y-auto">
+                {participants.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>暂无参与者</p>
+                    <p className="text-sm">加入房间后显示参与者列表</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {participants.map((participant) => (
+                      <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {participant.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium">{participant.name}</span>
+                          {participant.name === user.username && (
+                            <Badge variant="secondary" className="text-xs">
+                              你
+                            </Badge>
+                          )}
                         </div>
-                        <span className="font-medium">{participant.name}</span>
-                        {participant.name === user.username && (
-                          <Badge variant="secondary" className="text-xs">
-                            你
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {participant.isMuted ? (
+                            <MicOff className="w-4 h-4 text-red-500" />
+                          ) : (
+                            <Mic className="w-4 h-4 text-green-500" />
+                          )}
+                          {participant.name === user.username && isPTTMode && isPTTActive && (
+                            <Badge variant="destructive" className="text-xs animate-pulse">
+                              ON AIR
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {participant.isMuted ? (
-                          <MicOff className="w-4 h-4 text-red-500" />
-                        ) : (
-                          <Mic className="w-4 h-4 text-green-500" />
-                        )}
-                        {participant.name === user.username && isPTTMode && isPTTActive && (
-                          <Badge variant="destructive" className="text-xs animate-pulse">
-                            ON AIR
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* 音频设置面板 */}
+        {/* PTT按钮区域 - 移动端优化 */}
+        {isPTTMode && isConnected && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm safe-bottom">
+            <div className="mobile-container flex justify-center">
+              <Button
+                onTouchStart={handlePTTMouseDown}
+                onTouchEnd={handlePTTMouseUp}
+                onMouseDown={handlePTTMouseDown}
+                onMouseUp={handlePTTMouseUp}
+                onMouseLeave={handlePTTMouseUp}
+                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full text-white font-bold text-lg transition-all duration-150 touch-feedback ${
+                  isPTTActive
+                    ? "bg-red-500 hover:bg-red-600 scale-110 shadow-lg"
+                    : "bg-gray-500 hover:bg-gray-600"
+                }`}
+                disabled={!isConnected}
+              >
+                {isPTTActive ? "ON AIR" : "PTT"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 音频设置和监控面板 - 移动端优化 */}
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Settings2 className="w-5 h-5" />
                 音频设置
               </CardTitle>
-              <CardDescription>调整麦克风和扬声器设置</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -914,14 +976,12 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
             </CardContent>
           </Card>
 
-          {/* 音频质量监控 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Wifi className="w-5 h-5" />
                 音频质量监控
               </CardTitle>
-              <CardDescription>实时监控音频连接质量</CardDescription>
             </CardHeader>
             <CardContent>
               <QualityIndicator />
@@ -967,8 +1027,43 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
           </CardContent>
         </Card>
 
-        <audio ref={localAudioRef} autoPlay muted />
-        <audio ref={remoteAudioRef} autoPlay />
+        {/* 针对移动设备的音频控制 */}
+        {isMobile && isConnected && (
+          <MobileAudioControls
+            isPTTMode={isPTTMode}
+            isPTTActive={isPTTActive}
+            isMuted={isMuted}
+            isConnected={isConnected}
+            onPTTStart={handlePTTMouseDown}
+            onPTTEnd={handlePTTMouseUp}
+            onToggleMute={handleToggleMute}
+            onLeaveRoom={leaveRoom}
+          />
+        )}
+
+        {/* 移动端提示 */}
+        {isMobile && isConnected && (
+          <div className="fixed top-4 left-0 right-0 px-4 pointer-events-none">
+            <div className="bg-black/70 text-white text-sm py-2 px-4 rounded-full mx-auto max-w-max backdrop-blur-sm">
+              {isPTTMode ? (
+                '向右滑动切换到常规模式'
+              ) : (
+                '向左滑动静音，双击切换'
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* iOS Safari音频提示 */}
+        {isIOS && !isConnected && (
+          <div className="text-center mt-4 text-amber-600 text-sm">
+            <p>注意：iOS设备需要保持屏幕常亮以保持语音连接</p>
+          </div>
+        )}
+
+        {/* 隐藏的音频元素 */}
+        <audio ref={localAudioRef} autoPlay muted className="hidden" />
+        <audio ref={remoteAudioRef} autoPlay className="hidden" />
       </div>
     </div>
   )
