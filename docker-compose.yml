@@ -1,15 +1,22 @@
+version: '3.8'
 services:
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3500:3500"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/voicechat
+      - JWT_SECRET=your_jwt_secret_here
+      - JWT_EXPIRES_IN=7d
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:latest
@@ -19,6 +26,13 @@ services:
       - mongodb_data:/data/db
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
 
 networks:
   app-network:
