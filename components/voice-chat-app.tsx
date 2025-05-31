@@ -6,14 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Mic, MicOff, Phone, PhoneOff, Users, Wifi, WifiOff, LogOut, UserIcon, Settings2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import type { User } from "@/types/user"
 import AudioSettings, { type AudioSettings } from "@/components/audio-settings"
 import DeviceManager from "@/components/device-manager"
 import AudioVisualizer from "@/components/audio-visualizer"
 import VoiceHistory from "./voice-history"
 import { Switch } from "@/components/ui/switch"
-import { Socket } from "socket.io-client"
+import { useWebSocket } from "@/hooks/use-websocket"
+import { QualityIndicator } from "./quality-indicator"
 import { VoiceMessage, AudioStats, VoiceData } from "@/types/voice"
 import { AudioEncryption } from "@/lib/audio-encryption"
 import {
@@ -100,6 +101,29 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
 
   const MAX_RETRY_ATTEMPTS = 3
   const RETRY_DELAY = 2000 // 2秒
+
+  const { socket: wsSocket, isConnected: wsConnected, emit } = useWebSocket({
+    url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3500',
+    onConnect: () => {
+      if (roomId) {
+        emit('join_room', { roomId });
+      }
+    },
+    onDisconnect: () => {
+      toast({
+        title: '连接断开',
+        description: '正在尝试重新连接...',
+        variant: 'destructive',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: '连接错误',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   useEffect(() => {
     // 初始化音频设备列表
@@ -588,6 +612,20 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
     }
     
     // ...existing code...
+  };
+
+  const handleJoinRoom = (newRoomId: string) => {
+    if (!isConnected) {
+      toast({
+        title: '未连接',
+        description: '请等待WebSocket连接成功',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setRoomId(newRoomId);
+    emit('join_room', { roomId: newRoomId });
   };
 
   return (
