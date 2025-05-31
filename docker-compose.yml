@@ -1,30 +1,42 @@
 services:
   app:
-    image: mxdn/voice-chat-app:latest  # 使用预构建的镜像
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NETWORK_ENV=${NETWORK_ENV:-CN}
     container_name: voice-chat-app
+    restart: unless-stopped
     ports:
       - "3500:3500"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/voicechat
-      - JWT_SECRET=your_secure_jwt_secret
       - JWT_EXPIRES_IN=7d
+      - NETWORK_ENV=${NETWORK_ENV:-CN}
+      - APP_LANGUAGE=${APP_LANGUAGE:-zh-CN}
+    volumes:
+      - app_logs:/app/logs
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - app-network
-    restart: unless-stopped
-    volumes:
-      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3500"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   mongodb:
-    image: mongo:latest
+    image: ${MONGODB_IMAGE:-mongo:latest}
     container_name: voice-chat-mongodb
-    ports:
-      - "27017:27017"
+    restart: unless-stopped
     volumes:
       - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
     networks:
       - app-network
     healthcheck:
@@ -33,7 +45,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    restart: unless-stopped
 
 networks:
   app-network:

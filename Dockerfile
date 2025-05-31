@@ -31,6 +31,13 @@ RUN npm run build
 FROM node:18-alpine
 WORKDIR /app
 
+# 安装基础工具
+RUN apk add --no-cache \
+    bash \
+    curl \
+    openssl \
+    shadow
+
 # 创建日志目录
 RUN mkdir -p /app/logs
 
@@ -44,6 +51,22 @@ COPY --from=frontend-builder /app/next.config.mjs ./
 COPY --from=backend-builder /app/behind/dist ./behind/dist
 COPY --from=backend-builder /app/behind/package*.json ./behind/
 
+# 复制配置文件
+COPY docker-setup.sh /usr/local/bin/
+COPY docker-config.json /etc/docker/
+COPY deploy.sh /usr/local/bin/
+
+# 设置执行权限
+RUN chmod +x /usr/local/bin/docker-setup.sh \
+    && chmod +x /usr/local/bin/deploy.sh
+
+# 复制应用文件
+COPY . .
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV PORT=3500
+
 # 安装生产依赖
 RUN cd behind && npm install --production
 RUN npm install --production
@@ -52,7 +75,11 @@ RUN npm install --production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3500 || exit 1
 
-# 设置启动脚本
-COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# 添加容器初始化脚本
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+EXPOSE 3500
+
+# 设置入口点
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -1,13 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-# 配置 Docker 镜像源（如果是 Linux 系统）
-setup_docker_mirrors() {
-    if [ -f "/etc/docker/daemon.json" ]; then
-        echo "Docker配置文件已存在，跳过配置..."
-        return
-    fi
-
+# 配置Docker镜像源
+setup_docker() {
     echo "配置Docker镜像源..."
     mkdir -p /etc/docker
     cat > /etc/docker/daemon.json <<EOF
@@ -16,74 +11,77 @@ setup_docker_mirrors() {
         "https://mirror.ccs.tencentyun.com",
         "https://registry.cn-hangzhou.aliyuncs.com",
         "https://hub-mirror.c.163.com"
-    ]
+    ],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "3"
+    }
 }
 EOF
-
-    # 如果systemd可用，重启Docker服务
-    if command -v systemctl >/dev/null 2>&1; then
-        systemctl daemon-reload
-        systemctl restart docker
-    fi
 }
 
 # 等待MongoDB就绪
 wait_for_mongodb() {
-    echo "等待 MongoDB 就绪..."
-    until wget -q --spider http://mongodb:27017 2>/dev/null; do
-        echo "MongoDB 未就绪 - 等待..."
+    echo "等待MongoDB就绪..."
+    until nc -z mongodb 27017; do
+        echo "MongoDB未就绪 - 等待..."
         sleep 2
     done
-    echo "MongoDB 已就绪"
+    echo "MongoDB已就绪"
 }
 
-# 启动后端服务
-start_backend() {
-    echo "启动后端服务..."
-    cd /app/behind
-    node dist/index.js 2>&1 | tee -a /app/logs/backend.log &
-    echo $! > /app/backend.pid
-}
-
-# 启动前端服务
-start_frontend() {
-    echo "启动前端服务..."
-    cd /app
-    npm start 2>&1 | tee -a /app/logs/frontend.log
-}
-
-# 主程序
-main() {
-    # 创建日志目录
+# 初始化应用
+init_application() {
+    echo "初始化应用..."
+    
+    # 创建必要的目录
     mkdir -p /app/logs
-
-    # 设置随机JWT密钥（如果未指定）
+    mkdir -p /app/data/db
+    
+    # 设置权限
+    chown -R node:node /app/logs
+    chown -R node:node /app/data/db
+    
+    # 生成随机JWT密钥（如果未设置）
     if [ -z "$JWT_SECRET" ]; then
         export JWT_SECRET=$(openssl rand -base64 32)
     fi
-
-    # 如果是Linux系统且有root权限，配置Docker镜像源
-    if [ "$(id -u)" = "0" ]; then
-        setup_docker_mirrors
-    fi
-    
-    wait_for_mongodb
-    start_backend
-    start_frontend
 }
 
-# 退出时清理
-cleanup() {
-    echo "正在清理进程..."
-    if [ -f /app/backend.pid ]; then
-        kill $(cat /app/backend.pid) 2>/dev/null || true
-    fi
-    pkill -P $$ 2>/dev/null || true
-    exit 0
+# 启动应用
+start_application() {
+    echo "启动应用..."
+    cd /app
+    
+    # 启动后端服务
+    cd behind
+    npm start &
+    
+    # 启动前端服务
+    cd ..
+    npm start
+}
+
+# 主函数
+main() {
+    echo "启动容器..."
+    
+    # 执行Docker配置
+    setup_docker
+    
+    # 初始化应用
+    init_application
+    
+    # 等待MongoDB
+    wait_for_mongodb
+    
+    # 启动应用
+    start_application
 }
 
 # 设置退出处理
-trap cleanup SIGTERM SIGINT
+trap 'kill $(jobs -p)' EXIT
 
 # 运行主程序
 main

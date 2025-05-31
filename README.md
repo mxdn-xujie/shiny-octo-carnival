@@ -91,6 +91,25 @@ cd shiny-octo-carnival
 sudo docker-compose up -d
 ```
 
+### Linux系统部署（无需命令行）
+
+1. 下载以下文件到同一个目录：
+   - Dockerfile
+   - docker-compose.yml
+   - docker-entrypoint.sh
+   - docker-config.json
+
+2. 确保这些文件都在同一个目录中，然后双击运行`docker-compose.yml`即可。
+   系统会自动：
+   - 配置Docker镜像源
+   - 安装必要组件
+   - 启动所有服务
+
+3. 启动成功后，访问：
+   ```
+   http://localhost:3500
+   ```
+
 ### 常用命令
 
 - 查看服务状态：`sudo docker-compose ps`
