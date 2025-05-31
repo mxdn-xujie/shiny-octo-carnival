@@ -22,17 +22,18 @@ export const errorHandler: ErrorRequestHandler = (
   next: NextFunction
 ): void => {
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({
+    return res.status(err.statusCode).json({
       status: err.status,
-      message: err.message
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-    return;
   }
 
-  console.error('Error:', err);
-  
+  // 处理其他类型的错误
+  console.error('未处理的错误:', err);
   res.status(500).json({
     status: 'error',
-    message: '服务器内部错误'
+    message: '服务器内部错误',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 };
