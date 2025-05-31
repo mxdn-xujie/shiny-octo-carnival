@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: voice-chat-app
+    ports:
+      - "3500:3500"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/voicechat
+      - JWT_SECRET=${JWT_SECRET:-default_secret_please_change}
+      - JWT_EXPIRES_IN=7d
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  mongodb:
+    image: mongo:latest
+    container_name: voice-chat-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/db:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
