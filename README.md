@@ -244,4 +244,3 @@ MIT License
 如有问题，请通过以下方式联系：
 
 1. 提交 GitHub Issue
-2. 发送邮件至：support@example.com
