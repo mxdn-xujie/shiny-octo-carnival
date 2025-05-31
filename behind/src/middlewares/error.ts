@@ -16,24 +16,24 @@ export class AppError extends Error {
 }
 
 export const errorHandler: ErrorRequestHandler = (
-  err: Error | AppError,
+  err: unknown, // 修改为unknown类型以覆盖所有可能的错误
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
+  let processedError: AppError;
+    if (err instanceof AppError) {
+    processedError = err;
+  } else if (err instanceof Error) {
+    processedError = new AppError(err.message, 500);
+  } else {
+    // 非Error类型（如字符串、数字等）
+    processedError = new AppError('服务器内部错误', 500);
   }
 
-  // 处理其他类型的错误
-  console.error('未处理的错误:', err);
-  res.status(500).json({
-    status: 'error',
-    message: '服务器内部错误',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  res.status(processedError.statusCode).json({
+    status: processedError.status,
+    message: processedError.message,
+    stack: process.env.NODE_ENV === 'development' ? processedError.stack : undefined
   });
 };

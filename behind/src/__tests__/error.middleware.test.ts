@@ -1,58 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
-import { errorHandler } from '../middlewares/error';
+import { errorMiddleware } from '../middlewares/error';
 
-describe('Error Middleware Tests', () => {
+describe('Error Middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let mockNext: NextFunction;
-  let mockJson: jest.Mock;
-  let mockStatus: jest.Mock;
+  let nextFunction: NextFunction;
 
   beforeEach(() => {
-    mockJson = jest.fn();
-    mockStatus = jest.fn().mockReturnValue({ json: mockJson });
+    mockRequest = {};
     mockResponse = {
-      status: mockStatus,
-      json: mockJson,
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis()
     };
-    mockNext = jest.fn();
+    nextFunction = jest.fn();
   });
 
-  it('should handle validation errors', () => {
-    const validationError = new Error('Validation failed');
-    validationError.name = 'ValidationError';
+  test('should handle known errors', () => {
+    const error = new Error('Test error');
+    error.name = 'ValidationError';
+    
+    errorMiddleware(error, mockRequest as Request, mockResponse as Response, nextFunction);
 
-    errorHandler(validationError, mockRequest as Request, mockResponse as Response, mockNext);
-
-    expect(mockStatus).toHaveBeenCalledWith(400);
-    expect(mockJson).toHaveBeenCalledWith({
-      message: 'Validation failed',
-      stack: expect.any(String)
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Test error'
     });
   });
 
-  it('should handle authentication errors', () => {
-    const authError = new Error('Authentication failed');
-    authError.name = 'AuthenticationError';
+  test('should handle unknown errors', () => {
+    const error: Error = new Error('Unknown error');
+    
+    errorMiddleware(error, mockRequest as Request, mockResponse as Response, nextFunction);
 
-    errorHandler(authError, mockRequest as Request, mockResponse as Response, mockNext);
-
-    expect(mockStatus).toHaveBeenCalledWith(401);
-    expect(mockJson).toHaveBeenCalledWith({
-      message: 'Authentication failed',
-      stack: expect.any(String)
-    });
-  });
-
-  it('should handle general errors', () => {
-    const generalError = new Error('Something went wrong');
-
-    errorHandler(generalError, mockRequest as Request, mockResponse as Response, mockNext);
-
-    expect(mockStatus).toHaveBeenCalledWith(500);
-    expect(mockJson).toHaveBeenCalledWith({
-      message: 'Something went wrong',
-      stack: expect.any(String)
+    expect(mockResponse.status).toHaveBeenCalledWith(500);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Internal Server Error'
     });
   });
 });

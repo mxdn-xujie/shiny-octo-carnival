@@ -48,9 +48,7 @@ export class WebSocketManager {
       socket.on('disconnect', (reason) => {
         clearInterval(heartbeat);
         logger.info(`客户端断开连接: ${clientId}, 原因: ${reason}`);
-      });
-
-      socket.on('error', (error) => {
+      })     socket.on('error', (error) => {
         logger.error(`客户端错误: ${clientId}, 错误: ${error.message}`);
       });
     });

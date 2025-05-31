@@ -15,6 +15,7 @@ services:
       - JWT_EXPIRES_IN=7d
       - NETWORK_ENV=${NETWORK_ENV:-CN}
       - APP_LANGUAGE=${APP_LANGUAGE:-zh-CN}
+      - JWT_SECRET=${JWT_SECRET:-default_secret_please_change} # 新增：JWT 密钥（生产环境需替换）
     volumes:
       - app_logs:/app/logs
     depends_on:
@@ -40,7 +41,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"] # 修改：兼容旧版本 MongoDB（4.x+）
       interval: 10s
       timeout: 5s
       retries: 5
