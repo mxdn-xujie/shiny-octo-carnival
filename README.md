@@ -1,27 +1,64 @@
 # 语音对讲应用
 
-这是一个基于 WebRTC 的实时语音对讲应用，支持一键部署和移动端适配。
+这是一个基于 WebRTC 的实时语音对讲应用，支持智能部署和移动端适配。
 
-## Linux 一键部署（推荐）
+## 一键部署
 
-只需要运行以下命令即可完成部署：
+只需一个命令即可完成部署，系统会自动：
+- 识别操作系统类型（Windows/Linux/macOS）
+- 配置相应的 Docker 环境
+- 设置国内镜像源
+- 安装必要的依赖
+- 启动所有服务
 
+### Windows 系统
+```bash
+# 下载部署脚本
+curl -O https://raw.githubusercontent.com/mxdn-xujie/gxujiie/master/deploy.sh
+
+# 在 Git Bash 中运行（需要管理员权限）
+./deploy.sh
+```
+
+### Linux 系统
 ```bash
 # 下载部署脚本
 wget https://raw.githubusercontent.com/mxdn-xujie/gxujiie/master/deploy.sh
 
-# 添加执行权限
+# 添加执行权限并运行（需要root权限）
 chmod +x deploy.sh
-
-# 运行部署脚本（需要root权限）
 sudo ./deploy.sh
 ```
 
-脚本会自动：
-- 配置国内 Docker 镜像源
-- 安装必要的依赖
-- 下载所需的配置文件
-- 启动所有服务
+### macOS 系统
+```bash
+# 下载部署脚本
+curl -O https://raw.githubusercontent.com/mxdn-xujie/gxujiie/master/deploy.sh
+
+# 添加执行权限并运行
+chmod +x deploy.sh
+./deploy.sh
+```
+
+## 自动配置说明
+
+脚本会根据不同系统自动进行以下配置：
+
+### Windows
+- 自动配置 Docker Desktop 设置
+- 配置国内镜像加速
+- 优化 WSL2 配置（如果使用）
+
+### Linux
+- 自动安装 Docker 和 Docker Compose
+- 配置系统级镜像加速
+- 优化系统参数
+- 配置日志轮转
+
+### macOS
+- 配置 Docker Desktop 设置
+- 配置国内镜像加速
+- 优化性能参数
 
 ## 快速开始
 
