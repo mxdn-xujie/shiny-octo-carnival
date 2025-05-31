@@ -2,6 +2,27 @@
 
 这是一个基于 WebRTC 的实时语音对讲应用，支持一键部署和移动端适配。
 
+## Linux 一键部署（推荐）
+
+只需要运行以下命令即可完成部署：
+
+```bash
+# 下载部署脚本
+wget https://raw.githubusercontent.com/mxdn-xujie/gxujiie/master/deploy.sh
+
+# 添加执行权限
+chmod +x deploy.sh
+
+# 运行部署脚本（需要root权限）
+sudo ./deploy.sh
+```
+
+脚本会自动：
+- 配置国内 Docker 镜像源
+- 安装必要的依赖
+- 下载所需的配置文件
+- 启动所有服务
+
 ## 快速开始
 
 ### Docker 一键部署（推荐）

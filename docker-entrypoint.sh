@@ -1,8 +1,31 @@
 #!/bin/sh
 set -e
 
-# 安装必要的工具
-apk add --no-cache wget
+# 配置 Docker 镜像源（如果是 Linux 系统）
+setup_docker_mirrors() {
+    if [ -f "/etc/docker/daemon.json" ]; then
+        echo "Docker配置文件已存在，跳过配置..."
+        return
+    fi
+
+    echo "配置Docker镜像源..."
+    mkdir -p /etc/docker
+    cat > /etc/docker/daemon.json <<EOF
+{
+    "registry-mirrors": [
+        "https://mirror.ccs.tencentyun.com",
+        "https://registry.cn-hangzhou.aliyuncs.com",
+        "https://hub-mirror.c.163.com"
+    ]
+}
+EOF
+
+    # 如果systemd可用，重启Docker服务
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl daemon-reload
+        systemctl restart docker
+    fi
+}
 
 # 等待MongoDB就绪
 wait_for_mongodb() {
@@ -34,7 +57,16 @@ main() {
     # 创建日志目录
     mkdir -p /app/logs
 
-    # 启动服务
+    # 设置随机JWT密钥（如果未指定）
+    if [ -z "$JWT_SECRET" ]; then
+        export JWT_SECRET=$(openssl rand -base64 32)
+    fi
+
+    # 如果是Linux系统且有root权限，配置Docker镜像源
+    if [ "$(id -u)" = "0" ]; then
+        setup_docker_mirrors
+    fi
+    
     wait_for_mongodb
     start_backend
     start_frontend
