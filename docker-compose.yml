@@ -1,10 +1,20 @@
+version: '3.8'
+
+x-logging: &default-logging
+  options:
+    max-size: "100m"
+    max-file: "3"
+  driver: json-file
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - NETWORK_ENV=${NETWORK_ENV:-CN}
+        - BUILDPLATFORM=${BUILDPLATFORM:-linux/amd64}
+        - TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: voice-chat-app
     restart: unless-stopped
     ports:
@@ -13,43 +23,86 @@ services:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/voicechat
       - JWT_EXPIRES_IN=7d
-      - NETWORK_ENV=${NETWORK_ENV:-CN}
-      - APP_LANGUAGE=${APP_LANGUAGE:-zh-CN}
-      - JWT_SECRET=${JWT_SECRET:-default_secret_please_change} # 新增：JWT 密钥（生产环境需替换）
+      - TZ=Asia/Shanghai
+      - JWT_SECRET=${JWT_SECRET:-default_secret_please_change}
     volumes:
       - app_logs:/app/logs
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
-      - app-network
+      app-network:
+        ipv4_address: 172.20.0.2
+    dns:
+      - 8.8.8.8
+      - 114.114.114.114
+    dns_opt:
+      - use-vc
+      - no-tld-query
+    dns_search:
+      - voice-chat.local
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3500"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
 
   mongodb:
-    image: ${MONGODB_IMAGE:-mongo:latest}
+    image: mongo:4.4
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: voice-chat-mongodb
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
     volumes:
       - mongodb_data:/data/db
     ports:
       - "27017:27017"
     networks:
-      - app-network
+      app-network:
+        ipv4_address: 172.20.0.3
+    logging: *default-logging
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"] # 修改：兼容旧版本 MongoDB（4.x+）
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
 
 networks:
   app-network:
     driver: bridge
+    name: voice-chat-network
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: voice-chat-bridge
+      com.docker.network.driver.mtu: 1500
+    labels:
+      - "com.voice-chat.description=Voice Chat App Network"
+      - "com.voice-chat.environment=production"
 
 volumes:
   mongodb_data:

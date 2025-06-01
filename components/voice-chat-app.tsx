@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Socket } from "socket.io-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Mic, MicOff, Phone, PhoneOff, Users, Wifi, WifiOff, LogOut, UserIcon, Settings2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { User } from "@/types/user"
-import AudioSettings, { type AudioSettings } from "@/components/audio-settings"
+import AudioSettings, { type AudioSettings as AudioSettingsType } from "@/components/audio-settings"
 import DeviceManager from "@/components/device-manager"
 import AudioVisualizer from "@/components/audio-visualizer"
 import VoiceHistory from "./voice-history"
@@ -33,6 +34,8 @@ import { useMobile } from '@/hooks/use-mobile';
 import { useMobileControls } from '@/hooks/use-mobile-controls';
 import { useTouchGestures } from '@/hooks/use-touch-gestures';
 import { MobileAudioControls } from './mobile-audio-controls'
+import { AlertCircle } from "lucide-react"
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 interface Participant {
   id: string
@@ -88,18 +91,36 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   })
   const [voiceMessages, setVoiceMessages] = useState<VoiceMessage[]>([])
   const [isPlayingHistory, setIsPlayingHistory] = useState(false)
+  const [latency, setLatency] = useState<number>(0);
+  const { stats: networkStats, setStats: setNetworkStats } = useNetworkQuality({
+    socket,
+    isConnected,
+    onQualityChange: (quality) => {
+      // 当网络质量变差时通知用户
+      if (quality < 50 && isConnected) {
+        toast({
+          title: "网络质量警告",
+          description: "当前网络状况不佳，可能影响通话质量",
+          variant: "destructive",
+        })
+        // 触发移动设备振动提醒
+        networkWarningVibration()
+      }
+    }
+  })
 
   const localAudioRef = useRef<HTMLAudioElement>(null)
   const remoteAudioRef = useRef<HTMLAudioElement>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
-  const retryTimeoutRef = useRef<NodeJS.Timeout>()
-  const audioContextRef = useRef<AudioContext>()
-  const gainNodeRef = useRef<GainNode>()
-  const audioProcessorRef = useRef<ScriptProcessorNode | null>(null)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const audioProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const messageQueueRef = useRef<ArrayBuffer[]>([])
   const processingLockRef = useRef(false)
-  const statsIntervalRef = useRef<NodeJS.Timer>()
+  const statsIntervalRef = useRef<NodeJS.Timer | null>(null);
+  const latencyCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   const { toast } = useToast()
 
@@ -272,11 +293,11 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   }
 
   const handlePTTMouseDown = () => {
-    if (isPTTMode && isConnected) {
-      activatePTT(localStreamRef.current)
-      setIsPTTActive(true)
-      setIsMuted(false)
-      shortVibration()
+    if (isPTTMode && isConnected && localStreamRef.current) {
+      activatePTT(localStreamRef.current);
+      setIsPTTActive(true);
+      setIsMuted(false);
+      shortVibration();
       setParticipants(prev =>
         prev.map(p => (p.name === user.username ? { ...p, isMuted: false } : p))
       )
@@ -284,11 +305,11 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   }
 
   const handlePTTMouseUp = () => {
-    if (isPTTMode && isConnected) {
-      deactivatePTT(localStreamRef.current)
-      setIsPTTActive(false)
-      setIsMuted(true)
-      shortVibration()
+    if (isPTTMode && isConnected && localStreamRef.current) {
+      deactivatePTT(localStreamRef.current);
+      setIsPTTActive(false);
+      setIsMuted(true);
+      shortVibration();
       setParticipants(prev =>
         prev.map(p => (p.name === user.username ? { ...p, isMuted: true } : p))
       )
@@ -305,7 +326,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   }
 
   const handleTogglePTTMode = () => {
-    togglePTTModeUtil(isPTTMode, localStreamRef.current, setIsPTTMode, setIsMuted)
+    togglePTTModeUtil(isPTTMode, localStreamRef.current, setIsPTTMode, setIsMuted);
     setParticipants(prev =>
       prev.map(p => (p.name === user.username ? { ...p, isMuted: true } : p))
     )
@@ -313,11 +334,19 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
 
   const initializeAudioProcessing = (stream: MediaStream) => {
     if (audioContextRef.current) {
-      audioContextRef.current.close()
+      audioContextRef.current.close();
     }
 
-    audioContextRef.current = new AudioContext()
-    const [analyser, dataArray, bufferLength] = initializeAudioAnalyser(stream)
+    audioContextRef.current = new AudioContext();
+    const source = audioContextRef.current.createMediaStreamSource(stream);
+    const analyser = audioContextRef.current.createAnalyser();
+    
+    // 设置音频分析参数
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    source.connect(analyser);
     
     const processor = audioContextRef.current.createScriptProcessor(1024, 1, 1)
     processor.onaudioprocess = async (e) => {
@@ -435,7 +464,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
   }
 
   const createPeerConnection = () => {
-    const configuration = {
+    const configuration: RTCConfiguration = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
@@ -445,7 +474,7 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
           credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
         },
       ],
-      iceTransportPolicy: "all",
+      iceTransportPolicy: "all" as RTCIceTransportPolicy,
       iceCandidatePoolSize: 10,
     }
 
@@ -664,6 +693,69 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
     emit('join_room', { roomId: newRoomId });
   };
 
+  // 获取延时状态样式
+  const getLatencyStatus = () => {
+    if (latency < 100) return { color: 'text-green-500', text: '良好' };
+    if (latency < 200) return { color: 'text-yellow-500', text: '一般' };
+    return { color: 'text-red-500', text: '较差' };
+  };
+
+  // 添加延时检测函数
+  const checkLatency = () => {
+    if (!socket) return;
+    const start = Date.now();
+    socket.emit('ping', () => {
+      const duration = Date.now() - start;
+      setLatency(duration);
+    });
+  };
+
+  useEffect(() => {
+    if (isConnected && socket) {
+      // 每秒检查一次延时
+      latencyCheckInterval.current = setInterval(checkLatency, 1000);
+      return () => {
+        if (latencyCheckInterval.current) {
+          clearInterval(latencyCheckInterval.current);
+        }
+      };
+    }
+  }, [isConnected, socket]);
+
+  // 更新QoS监控函数
+  const startQoSMonitoring = () => {
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current as unknown as number);
+    }
+    
+    statsIntervalRef.current = setInterval(() => {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.getStats().then(stats => {
+          stats.forEach(report => {
+            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+              // 更新网络统计信息
+              setNetworkStats(prev => ({
+                ...prev,
+                packetLoss: Math.round((report.packetsLost / (report.packetsReceived + report.packetsLost)) * 1000) / 10,
+                bitrate: Math.round((report.bytesReceived * 8) / 1000), // kbps
+                jitter: Math.round(report.jitter * 1000) // 转换为毫秒
+              }))
+            }
+          })
+        })
+      }
+    }, 1000) as unknown as NodeJS.Timer;
+  };
+
+  // 在组件卸载时清理
+  useEffect(() => {
+    return () => {
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current as unknown as number);
+      }
+    };
+  }, []);
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ${
       isMobile ? 'safe-top safe-bottom' : 'p-4'
@@ -701,9 +793,19 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
               <CardDescription className="text-sm">加入或创建语音房间</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
-                <span className="text-sm font-medium">{getStatusText()}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+                  <span className="text-sm font-medium">{getStatusText()}</span>
+                </div>
+                {isConnected && (
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className={`w-4 h-4 ${getLatencyStatus().color}`} />
+                    <span className={`text-sm ${getLatencyStatus().color}`}>
+                      延时: {latency}ms ({getLatencyStatus().text})
+                    </span>
+                  </div>
+                )}
               </div>
 
               {!isConnected ? (
@@ -980,11 +1082,11 @@ export default function VoiceChatApp({ user, onLogout, socket }: VoiceChatAppPro
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Wifi className="w-5 h-5" />
-                音频质量监控
+                网络质量监控
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <QualityIndicator />
+              <QualityIndicator stats={networkStats} />
             </CardContent>
           </Card>
         </div>

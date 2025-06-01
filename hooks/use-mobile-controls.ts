@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useMobile } from './use-mobile';
 
 interface MobileControlsOptions {
@@ -14,6 +14,30 @@ export function useMobileControls({
 }: MobileControlsOptions) {
   const { isIOS, isAndroid } = useMobile();
 
+  const shortVibration = useCallback(() => {
+    if (enableVibration && 'vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+  }, [enableVibration]);
+
+  const mediumVibration = useCallback(() => {
+    if (enableVibration && 'vibrate' in navigator) {
+      navigator.vibrate([50, 50, 50]);
+    }
+  }, [enableVibration]);
+
+  const longVibration = useCallback(() => {
+    if (enableVibration && 'vibrate' in navigator) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  }, [enableVibration]);
+
+  const networkWarningVibration = useCallback(() => {
+    if (enableVibration && 'vibrate' in navigator) {
+      navigator.vibrate([100, 100, 100, 100, 100]);
+    }
+  }, [enableVibration]);
+
   // 触觉反馈函数
   const vibrate = (pattern: number | number[]) => {
     if (!enableVibration) return;
@@ -27,20 +51,12 @@ export function useMobileControls({
     }
   };
 
-  // 短振动 - 按钮点击
-  const shortVibration = () => vibrate(10);
-
-  // 中等振动 - 状态改变
-  const mediumVibration = () => vibrate(50);
-
-  // 长振动 - 错误或警告
-  const longVibration = () => vibrate([100, 50, 100]);
-
   // 自定义振动模式
   const customVibration = (pattern: number[]) => vibrate(pattern);
 
+  // 添加音量按键监听
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleVolumeKeys = (event: KeyboardEvent) => {
       // 针对Android和iOS的音量键处理
       if (isAndroid || isIOS) {
         if (event.key === 'AudioVolumeUp' && onVolumeUp) {
@@ -55,14 +71,15 @@ export function useMobileControls({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onVolumeUp, onVolumeDown, isAndroid, isIOS]);
+    window.addEventListener('keydown', handleVolumeKeys);
+    return () => window.removeEventListener('keydown', handleVolumeKeys);
+  }, [onVolumeUp, onVolumeDown, isAndroid, isIOS, shortVibration]);
 
   return {
     vibrate: customVibration,
     shortVibration,
     mediumVibration,
     longVibration,
+    networkWarningVibration,
   };
 }

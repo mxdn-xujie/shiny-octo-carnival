@@ -1,27 +1,35 @@
 export interface VoiceMessage {
-  id: string
-  senderId: string
-  senderName: string
-  duration: number
-  timestamp: Date
-  url: string
-}
-
-export interface AudioStats {
-  volume: number
-  speaking: boolean
-  muted: boolean
-  codec: string
-  packetLoss: number
-  bitrate: number
-  latency: number
+  id: string;
+  senderId: string;
+  senderName: string;
+  duration: number;
+  timestamp: Date;
+  url?: string;
 }
 
 export interface VoiceData {
-  data: ArrayBuffer
-  iv: Uint8Array
-  salt: Uint8Array
-  timestamp?: number
-  messageId?: string
-  signature?: ArrayBuffer
+  roomId: string;
+  audioData: ArrayBuffer;
+  duration: number;
+  messageId: string;
+  timestamp: number;
+}
+
+export interface AudioStats {
+  packetLoss: number;
+  bitrate: number;
+  latency: number;
+  jitter: number;
+}
+
+export interface RoomParticipant {
+  id: string;
+  name: string;
+  isMuted: boolean;
+  isPaused?: boolean;
+}
+
+export interface AudioQualityEvent {
+  roomId: string;
+  quality: number;
 }

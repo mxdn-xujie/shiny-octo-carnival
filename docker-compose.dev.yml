@@ -1,8 +1,19 @@
+version: '3.8'
+
+x-logging: &default-logging
+  options:
+    max-size: "100m"
+    max-file: "3"
+  driver: json-file
+
 services:
   app:
     build: 
       context: .
       dockerfile: Dockerfile.dev
+      args:
+        - BUILDPLATFORM=${BUILDPLATFORM:-linux/amd64}
+    platform: ${TARGETPLATFORM:-linux/amd64}
     ports:
       - "3500:3500"
     environment:
@@ -10,27 +21,68 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/voicechat
       - DEV_MODE=true
       - ENABLE_LOGS=true
+      - TZ=Asia/Shanghai
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
+      - app_logs:/app/logs
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - app-network
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3500"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
 
   mongodb:
-    image: mongo:latest
+    image: mongo:4.4
+    platform: ${TARGETPLATFORM:-linux/amd64}
     ports:
       - "27017:27017"
+    environment:
+      - TZ=Asia/Shanghai
     volumes:
       - mongodb_data:/data/db
     networks:
       - app-network
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
 
 networks:
   app-network:
     driver: bridge
+    name: voice-chat-dev-network
+    attachable: true
 
 volumes:
   mongodb_data:
+    name: voice-chat-dev-mongodb-data
+  app_logs:
+    name: voice-chat-dev-app-logs
