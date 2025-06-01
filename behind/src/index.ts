@@ -59,6 +59,11 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/', metricsRoutes);
 
+// 添加健康检查路由
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // WebSocket 事件处理
 io.on('connection', (socket: TypedSocket) => {
   // 更新连接计数

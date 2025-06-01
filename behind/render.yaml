@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: voice-chat-backend
+    env: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3500
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+    healthCheckPath: /health
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
