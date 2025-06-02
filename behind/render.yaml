@@ -11,10 +11,45 @@ services:
         value: 3500
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
       - key: MONGODB_URI
         sync: false
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: WS_HEARTBEAT_INTERVAL
+        value: "30000"
+      - key: WS_RECONNECT_ATTEMPTS
+        value: "5"
+      - key: MAX_UPLOAD_SIZE
+        value: "10mb"
+      - key: VOICE_QUALITY
+        value: "high"
+      - key: MAX_VOICE_DURATION
+        value: "300000"
+      - key: AUDIO_BITRATE
+        value: "128000"
+      - key: MAX_ROOM_PARTICIPANTS
+        value: "10"
     healthCheckPath: /health
     disk:
       name: data
       mountPath: /data
       sizeGB: 1
+    autoDeploy: true
+    numInstances: 1
+    domains:
+      - voice-chat-backend.onrender.com
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    regions:
+      - singapore
