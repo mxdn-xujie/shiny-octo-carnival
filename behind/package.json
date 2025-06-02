@@ -17,7 +17,7 @@
   "description": "",
   "dependencies": {
     "@parse/fs-files-adapter": "^1.2.4",
-    "@parse/push-adapter": "^5.0.0",
+    "@parse/push-adapter": "^6.11.0",
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.27",
     "@types/socket.io": "^3.0.1",
