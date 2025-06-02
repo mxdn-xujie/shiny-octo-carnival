@@ -20,7 +20,9 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: CORS_ORIGIN
-        value: "*"
+        value: "https://voice-chat.vercel.app"
+      - key: ALLOWED_ORIGINS
+        value: "https://voice-chat.vercel.app"
       - key: WS_HEARTBEAT_INTERVAL
         value: "30000"
       - key: WS_RECONNECT_ATTEMPTS
@@ -50,6 +52,6 @@ services:
     headers:
       - path: /*
         name: Access-Control-Allow-Origin
-        value: "*"
+        value: "https://voice-chat.vercel.app"
     regions:
       - singapore
