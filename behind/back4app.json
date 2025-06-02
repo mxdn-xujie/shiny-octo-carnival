@@ -1,0 +1,8 @@
+{
+  "name": "voice-chat-backend",
+  "parse": {
+    "appId": "${PARSE_APP_ID}",
+    "masterKey": "${PARSE_MASTER_KEY}",
+    "serverURL": "https://parseapi.back4app.com"
+  }
+}

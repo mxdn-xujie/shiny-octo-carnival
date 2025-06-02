@@ -1,0 +1,14 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "services": {
+    "app": {
+      "port": 3500,
+      "envs": {
+        "NODE_ENV": "production",
+        "PORT": "3500"
+      }
+    }
+  }
+}
