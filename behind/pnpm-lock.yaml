@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@parse/fs-files-adapter':
-        specifier: ^1.2.4
-        version: 1.2.4
+        specifier: ^3.0.0
+        version: 3.0.0
       '@parse/push-adapter':
         specifier: ^5.0.0
         version: 5.2.0
@@ -782,11 +782,11 @@ packages:
   '@paralleldrive/cuid2@2.2.2':
     resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
 
-  '@parse/fs-files-adapter@1.2.4':
-    resolution: {integrity: sha512-4I0Iou5Qeb4wZrP3pMoeWVCRtri0cqL5bx/1+8iZ3M0EDzbCgKJVSeLqmK5IVIJJ3OT3QOHvrhhFiqerx8kj7g==}
-
   '@parse/fs-files-adapter@2.0.1':
     resolution: {integrity: sha512-9DY0T9lK73Ysw+wxxsBt9rpxWxJpMlHl/fTW175XSajusW0ZP5jERI3BTKeclV28eVmSU690EO2vnwCURsPZ7g==}
+
+  '@parse/fs-files-adapter@3.0.0':
+    resolution: {integrity: sha512-Bb+qLtXQ/1SA2Ck6JLVhfD9JQf6cCwgeDZZJjcIdHzUtdPTFu1hj51xdD7tUCL47Ed2i3aAx6K/M6AjLWYVs3A==}
 
   '@parse/node-apn@6.0.1':
     resolution: {integrity: sha512-QQxqEN/zbtEkSgj41oX/tQUavML+G+JHeQi2YVlgZlponnwIxA3fb5tEbXPm+fdR6rL1pi2/z2PcOwINOyx2eA==}
@@ -5128,9 +5128,9 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
-  '@parse/fs-files-adapter@1.2.4': {}
-
   '@parse/fs-files-adapter@2.0.1': {}
+
+  '@parse/fs-files-adapter@3.0.0': {}
 
   '@parse/node-apn@6.0.1':
     dependencies:
