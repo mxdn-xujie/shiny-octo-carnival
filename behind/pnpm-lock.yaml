@@ -45,8 +45,8 @@ importers:
         specifier: ^8.15.1
         version: 8.15.1(@aws-sdk/credential-providers@3.821.0)(socks@2.8.4)
       parse:
-        specifier: ^4.3.1
-        version: 4.3.1
+        specifier: ^6.1.1
+        version: 6.1.1
       parse-server:
         specifier: ^6.2.0
         version: 6.5.11(@babel/core@7.27.4)(eslint@8.57.1)
@@ -378,6 +378,10 @@ packages:
 
   '@babel/runtime-corejs3@7.23.2':
     resolution: {integrity: sha512-54cIh74Z1rp4oIjsHjqN+WM4fMyCBYe+LpZ9jWm51CZ1fbH3SkAzQD/3XLoNkjbJ7YEmjobLXyvQrFypRHOrXw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime-corejs3@7.27.0':
+    resolution: {integrity: sha512-UWjX6t+v+0ckwZ50Y5ShZLnlk95pP5MyW/pon9tiYzl3+18pkTHTFNTKr7rQbfRXPkowt2QAn30o1b6oswszew==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.27.2':
@@ -3056,6 +3060,10 @@ packages:
     resolution: {integrity: sha512-ypLPhMPFsJY+C2MXg6HdrVu6ielsL+kUjcSqh7J01lPC5oBuLh70F9YMQSw51QBocEeMSVgB7eUorFOH+MkVpA==}
     engines: {node: '>=14.21.0 <17 || >=18 <20'}
 
+  parse@6.1.1:
+    resolution: {integrity: sha512-zf70XcHKesDcqpO2RVKyIc1l7pngxBsYQVl0Yl/A38pftOSP8BQeampqqLEqMknzUetNZy8B+wrR3k5uTQDXOw==}
+    engines: {node: 18 || 19 || 20 || 22}
+
   parseurl@1.3.3:
     resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
     engines: {node: '>= 0.8'}
@@ -3761,6 +3769,10 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    hasBin: true
+
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
     deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
@@ -3909,6 +3921,18 @@ packages:
 
   ws@8.17.1:
     resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.18.1:
+    resolution: {integrity: sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -4546,6 +4570,11 @@ snapshots:
       regenerator-runtime: 0.13.11
 
   '@babel/runtime-corejs3@7.23.2':
+    dependencies:
+      core-js-pure: 3.42.0
+      regenerator-runtime: 0.14.1
+
+  '@babel/runtime-corejs3@7.27.0':
     dependencies:
       core-js-pure: 3.42.0
       regenerator-runtime: 0.14.1
@@ -8052,6 +8081,20 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  parse@6.1.1:
+    dependencies:
+      '@babel/runtime-corejs3': 7.27.0
+      idb-keyval: 6.2.1
+      react-native-crypto-js: 1.0.0
+      uuid: 10.0.0
+      ws: 8.18.1
+      xmlhttprequest: 1.8.0
+    optionalDependencies:
+      crypto-js: 4.2.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   parseurl@1.3.3: {}
 
   path-exists@4.0.0: {}
@@ -8814,6 +8857,8 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
+  uuid@10.0.0: {}
+
   uuid@3.4.0: {}
 
   uuid@8.3.2:
@@ -8956,6 +9001,8 @@ snapshots:
   ws@8.13.0: {}
 
   ws@8.17.1: {}
+
+  ws@8.18.1: {}
 
   xmlhttprequest-ssl@2.1.2: {}
 
